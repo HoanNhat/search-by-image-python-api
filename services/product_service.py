@@ -15,6 +15,7 @@ class ProductService:
                 - database
                 - user
                 - password
+                - port
         """
         self.db_config = db_config
         self.connection = None
@@ -36,6 +37,7 @@ class ProductService:
                 database=self.db_config['database'],
                 user=self.db_config['user'],
                 password=self.db_config['password'],
+                port=self.db_config['port'],
                 charset='utf8mb4',
                 cursorclass=DictCursor
             )
