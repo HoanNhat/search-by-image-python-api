@@ -7,6 +7,7 @@ from services.product_service import ProductService
 from services.firebase_service import FirebaseService
 from utils.image_utils import process_image, download_image
 import tempfile
+import json
 
 load_dotenv()
 
@@ -18,10 +19,10 @@ app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 
 product_service = ProductService({
-    'host': 'localhost',
-    'database': 'fashion_store',
-    'user': 'root',
-    'password': 'root'
+    'host': os.getenv('DB_HOST'),
+    'database': os.getenv('DB_NAME'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD')
 })
 firebase_service = FirebaseService()
 
@@ -66,13 +67,23 @@ def search_by_image():
                             product_features
                         )
                         
-                        results.append({
-                            'product_id': product['id'],
-                            'name': product['name'],
-                            'description': product['description'],
-                            'image_url': product['image_url'],
-                            'similarity': float(similarity)
-                        })
+                        if similarity >= 0.4:
+                            results.append({
+                                'id': product['id'],
+                                'productCode': product['product_code'],
+                                'name': product['name'],
+                                'price': product['price'],
+                                'description': product['description'],
+                                'totalQuantity': product['total_quantity'],
+                                'soldQuantity': product['sold_quantity'],
+                                'rating': product['rating'],
+                                'discount': product['discount'],
+                                'imageUrl': product['image_url'].split(','),
+                                'isActive': product['is_active'],
+                                'category': json.loads(product['category']),
+                                'variants': json.loads(product['variants']),
+                                'similarity': float(similarity)
+                            })
                         
                         # Clean up downloaded image
                         if os.path.exists(product_image_path):
@@ -83,7 +94,18 @@ def search_by_image():
             
             # Sort by similarity and return top results
             results.sort(key=lambda x: x['similarity'], reverse=True)
-            return jsonify({'results': results[:10]})
+            return jsonify({
+                'data': {
+                    'items': results
+                },
+                'pagination': {
+                    'totalItems': results.__len__(),
+                    'totalPages': 0
+                },
+                'code': 200,
+                'message': 'Thành công',
+                'success': True
+            })
             
         finally:
             # Clean up uploaded file
@@ -92,5 +114,9 @@ def search_by_image():
     else:
         return jsonify({'error': 'Invalid file type'}), 400
 
+@app.route('/')
+def index():
+    return product_service.get_all_products()
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=7000, debug=True)

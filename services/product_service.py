@@ -61,9 +61,48 @@ class ProductService:
         try:
             cursor = self.connection.cursor()
             query = """
-                SELECT id, name, description, image_url 
-                FROM products 
-                WHERE image_url IS NOT NULL
+                SELECT 
+                    p.id,
+                    p.product_code ,
+                    p.name,
+                    p.price,
+                    p.description,
+                    p.total_quantity,
+                    p.sold_quantity,
+                    p.rating,
+                    p.discount,
+                    p.image_url,
+                    p.created_at,
+                    p.updated_at,
+                    p.is_active,
+                    JSON_OBJECT(
+                        'id', c.id,
+                        'name', c.name
+                    ) AS category,
+                    JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'id', pv.id,
+                            'size', pv.size,
+                            'color', pv.color,
+                            'colorHex', pv.color_hex,
+                            'quantity', pv.quantity
+                        )
+                    ) AS variants
+                FROM 
+                    products p
+                LEFT JOIN 
+                    categories c ON p.category_id = c.id
+                LEFT JOIN 
+                    product_variants pv ON p.id = pv.product_id
+                WHERE 
+                    p.is_active = TRUE
+                AND
+                    p.image_url IS NOT NULL
+                GROUP BY 
+                    p.id, p.product_code, p.name, p.price, p.description, 
+                    p.total_quantity, p.sold_quantity, p.rating, p.discount, 
+                    p.image_url, p.created_at, p.updated_at, p.is_active, 
+                    c.id, c.name
             """
             cursor.execute(query)
             return cursor.fetchall()
