@@ -1,20 +1,19 @@
 import os
-from flask import Flask, request, jsonify
+import json
+import tempfile
 from flask_cors import CORS
-from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+from flask import Flask, request, jsonify
+from werkzeug.utils import secure_filename
 from services.product_service import ProductService
 from services.firebase_service import FirebaseService
 from utils.image_utils import process_image, download_image
-import tempfile
-import json
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# Config
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
 
@@ -23,7 +22,7 @@ product_service = ProductService({
     'database': os.getenv('DB_NAME'),
     'user': os.getenv('DB_USER'),
     'password': os.getenv('DB_PASSWORD'),
-    'port': os.getenv('DB_PORT')
+    'port': int(os.getenv('DB_PORT'))
 })
 firebase_service = FirebaseService()
 
@@ -46,23 +45,18 @@ def search_by_image():
         file.save(temp_path)
         
         try:
-            # Process the uploaded image
             query_features = process_image(temp_path)
             
-            # Get all products with image URLs
             products = product_service.get_all_products()
             
-            # Compare with each product image
             results = []
             for product in products:
                 if product['image_url']:
                     try:
-                        # Download product image from Firebase
                         image_url = product['image_url'].split(',')[0]
                         product_image_path = download_image(image_url)
                         product_features = process_image(product_image_path)
                         
-                        # Calculate similarity
                         similarity = product_service.calculate_similarity(
                             query_features, 
                             product_features
@@ -86,14 +80,12 @@ def search_by_image():
                                 'similarity': float(similarity)
                             })
                         
-                        # Clean up downloaded image
                         if os.path.exists(product_image_path):
                             os.remove(product_image_path)
                     except Exception as e:
                         print(f"Error processing product {product['id']}: {str(e)}")
                         continue
             
-            # Sort by similarity and return top results
             results.sort(key=lambda x: x['similarity'], reverse=True)
             return jsonify({
                 'data': {
@@ -109,7 +101,6 @@ def search_by_image():
             })
             
         finally:
-            # Clean up uploaded file
             if os.path.exists(temp_path):
                 os.remove(temp_path)
     else:

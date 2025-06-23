@@ -7,7 +7,6 @@ load_dotenv()
 
 class FirebaseService:
     def __init__(self):
-        # Initialize Firebase
         cred = credentials.Certificate({
             "type": os.getenv("FIREBASE_TYPE"),
             "project_id": os.getenv("FIREBASE_PROJECT_ID"),
@@ -25,7 +24,6 @@ class FirebaseService:
         self.db = firestore.client()
     
     def get_product_image_urls(self):
-        """Get all product image URLs from Firebase"""
         products_ref = self.db.collection('products')
         docs = products_ref.stream()
         

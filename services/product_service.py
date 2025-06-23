@@ -1,9 +1,8 @@
-from utils.model_utils import cosine_similarity
-import numpy as np
 import pymysql
 from pymysql import Error
 from pymysql.cursors import DictCursor
 from typing import List, Dict, Optional
+from utils.model_utils import cosine_similarity
 
 class ProductService:
     def __init__(self, db_config: Dict):
@@ -21,16 +20,13 @@ class ProductService:
         self.connection = None
         
     def __enter__(self):
-        """Kết nối database khi sử dụng with statement"""
         self.connect()
         return self
         
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Đóng kết nối khi thoát with statement"""
         self.disconnect()
         
     def connect(self):
-        """Thiết lập kết nối MySQL"""
         try:
             self.connection = pymysql.connect(
                 host=self.db_config['host'],
@@ -46,17 +42,11 @@ class ProductService:
             raise
             
     def disconnect(self):
-        """Đóng kết nối MySQL"""
         if self.connection and self.connection.open:
             self.connection.close()
             
     def get_all_products(self) -> List[Dict]:
-        """Lấy tất cả sản phẩm có URL hình ảnh từ database
-        
-        Returns:
-            List[Dict]: Danh sách sản phẩm
-        """
-        cursor = None  # Khởi tạo trước để tránh UnboundLocalError
+        cursor = None
         if not self.connection or not self.connection.open:
             self.connect()
             
@@ -116,15 +106,7 @@ class ProductService:
                 cursor.close()
     
     def get_product_by_id(self, product_id: int) -> Optional[Dict]:
-        """Lấy thông tin chi tiết sản phẩm theo ID
-        
-        Args:
-            product_id (int): ID sản phẩm
-            
-        Returns:
-            Optional[Dict]: Thông tin sản phẩm hoặc None nếu không tìm thấy
-        """
-        cursor = None  # Khởi tạo trước để tránh UnboundLocalError
+        cursor = None 
         if not self.connection or not self.connection.open:
             self.connect()
             
@@ -145,13 +127,4 @@ class ProductService:
                 cursor.close()
     
     def calculate_similarity(self, vec1, vec2) -> float:
-        """Tính độ tương đồng cosine giữa hai vector đặc trưng
-        
-        Args:
-            vec1: Vector đặc trưng thứ nhất
-            vec2: Vector đặc trưng thứ hai
-            
-        Returns:
-            float: Độ tương đồng cosine (0-1)
-        """
         return cosine_similarity(vec1, vec2)
